@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ananta — before the first light</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#f4efe6;--dim:rgba(244,239,230,.82);--faint:rgba(244,239,230,.66);--gold:#ffcf8a;--line:rgba(255,214,160,.25)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#000003;color:var(--ink)}
+  body{font-family:"Jost",system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}
+  #gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:0}
+  #spacer{height:1000vh}
+
+  /* text column — left third, always over empty sky */
+  .shade{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(90deg,rgba(0,0,6,.72) 0%,rgba(0,0,6,.45) 26%,rgba(0,0,6,0) 44%)}
+  .panel{position:fixed;left:7vw;top:50%;transform:translateY(-50%);width:min(31vw,460px);z-index:2;visibility:hidden}
+  .panel.final{top:24%;transform:none}
+  .panel > *{will-change:transform,opacity,filter}
+  .kicker{display:block;font-size:12px;letter-spacing:.38em;text-transform:uppercase;margin-bottom:22px;color:#e6e8ff}
+  .kicker b{font-weight:500;margin-right:12px;color:#c9c2ff}
+  /* light leak over white */
+  h2{font-family:"Fraunces",serif;font-weight:300;font-size:clamp(34px,3.6vw,56px);line-height:1.1;letter-spacing:-.015em;
+    background:linear-gradient(100deg,#ffffff 0%,#ffffff 30%,#efeaff 44%,#e1dcff 54%,#ffffff 64%,#e4eeff 78%,#ffffff 100%);
+    background-size:240% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:leak 11s ease-in-out infinite alternate}
+  h2 em{font-style:italic;background:linear-gradient(100deg,#ffffff 0%,#e3dcff 35%,#d6e4ff 70%,#ffffff 100%);
+    background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:leak 7s ease-in-out infinite alternate}
+  @keyframes leak{from{background-position:0% 50%}to{background-position:100% 50%}}
+  .panel p{font-size:17.5px;line-height:1.75;color:rgba(240,242,255,.86);margin-top:24px}
+  .final h2{font-size:clamp(40px,4.4vw,68px)}
+  .final .sub{font-family:"Fraunces";font-style:italic;font-size:20px;color:#e3e1ff;margin-top:22px}
+
+  /* native scrollbar — thin light leak */
+  html{scrollbar-width:thin;scrollbar-color:#d9d4ff transparent}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{border-radius:6px;background:linear-gradient(#ffffff,#e6e1ff 40%,#c9d8ff 80%,#ffffff)}
+
+  #fade{position:fixed;inset:0;z-index:5;background:#000003;opacity:0;pointer-events:none;transition:opacity 1.4s ease}
+  #fade.on{opacity:1}
+  .cue{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;
+    font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:#e6e8ff;transition:opacity .8s}
+  .cue i{display:block;width:1px;height:56px;background:linear-gradient(transparent,rgba(225,225,255,.6));position:relative;overflow:hidden}
+  .cue i::after{content:"";position:absolute;left:0;top:64px;width:1px;height:24px;background:linear-gradient(#fff,#d8d0ff,#c4d6ff);animation:drip 2.4s ease-in-out infinite}
+  @keyframes drip{to{top:-24px}}
+
+  .rail{position:fixed;right:30px;top:50%;transform:translateY(-50%);z-index:2;width:1px;height:40vh;background:linear-gradient(rgba(255,255,255,.18),rgba(210,200,255,.18),rgba(190,210,255,.18))}
+  .rail .fill{position:absolute;left:-.5px;top:0;width:2px;border-radius:2px;background:linear-gradient(#ffffff,#ece8ff 35%,#cfc6ff 70%,#c3d6ff);box-shadow:0 0 10px rgba(200,195,255,.5)}
+  .rail .dot{position:absolute;left:-3px;width:7px;height:7px;border-radius:50%;border:1px solid rgba(220,215,255,.45);background:#000003;transition:all .5s}
+  .rail .dot.on{background:radial-gradient(circle at 35% 35%,#fff,#ddd6ff 55%,#bcd0ff);border-color:#ece8ff;box-shadow:0 0 14px 3px rgba(190,185,255,.55)}
+
+  @media (max-width:820px){
+    .shade{background:linear-gradient(0deg,rgba(0,0,6,.85) 0%,rgba(0,0,6,.55) 32%,rgba(0,0,6,0) 55%)}
+    .panel{left:6vw;right:6vw;width:auto;top:auto;bottom:9vh;transform:none}
+    .panel p{font-size:16px;margin-top:16px}
+    h2{font-size:32px}
+    .rail{right:14px}
+  }
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="shade"></div>
+
+<!-- ============ STORY TEXT — edit freely; one panel per chapter ============ -->
+<div class="panel">
+  <h2>Ravana had conquered <em>the heavens.</em></h2>
+  <p>Indra was defeated, the gods were scattered, and the sky itself went dark.</p></div>
+<div class="panel">
+  <h2>Defeated, Indra came <em>seeking refuge.</em></h2>
+  <p>He joined his hands and called to the One beyond all worlds.</p></div>
+<div class="panel">
+  <h2>And the ocean of stars <em>began to stir.</em></h2>
+  <p>Beneath the endless night, the cosmic ocean rose in slow, shining waves.</p></div>
+<div class="panel">
+  <h2>Ananta rose, the serpent <em>without end.</em></h2>
+  <p>His hoods opened over the waters, a canopy for the One who was coming.</p></div>
+<div class="panel">
+  <h2>His <em>Sudarshana</em> blazed to life.</h2>
+  <p>The discus no darkness can withstand, turning on the finger of the Lord.</p></div>
+<div class="panel">
+  <h2>From his stillness, a <em>lotus</em> opened.</h2>
+  <p>Pure and untouched, the seat from which all creation unfolds.</p></div>
+<div class="panel">
+  <h2>And Narayana <em>answered.</em></h2>
+  <p>Protector of the three worlds, he revealed himself in every star.</p></div>
+<div class="panel final">
+  <h2>He who answers <em>every prayer.</em></h2>
+  <div class="sub">Om Namo Narayanaya</div></div>
+
+<div id="fade"></div>
+<div class="cue"><i></i><span>Scroll</span></div>
+<div class="rail"><div class="fill"></div></div>
+<div id="spacer"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const SRC = "__IMG__", DENS = "__DENS__", SNAKE = "__SNAKE__", SNAKED = "__SNAKED__", DEV = "__DEV__", DEVD = "__DEVD__";   // colour + star-density maps — used only to place stars, never drawn
+const MOBILE = innerWidth < 820;
+const Q = MOBILE ? 0.45 : 1;
+const IW = 1200, IH = 867, S = 0.1;
+const XOFF = MOBILE ? 0 : 42;                 // figure sits in the right two-thirds; left third stays open sky
+const wx = x => (x - IW/2) * S + XOFF, wy = y => -(y - IH/2) * S;
+const rand = (a=0,b=1)=>a+Math.random()*(b-a);
+const gauss = ()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+const sm = (a,b,v)=>{const t=Math.min(Math.max((v-a)/(b-a),0),1);return t*t*(3-2*t);};
+const box = (x,y,x0,y0,x1,y1,f=25)=> sm(x0-f,x0,x)*sm(x1+f,x1,x)*sm(y0-f,y0,y)*sm(y1+f,y1,y);
+const lin = v => Math.pow(v/255, 2.2);
+
+/* chapters: 8 equal slices of the scroll. index → [start, end] of its animation */
+const DPOS = MOBILE ? [-44, -40] : [-62, -26];      // clear gap from the serpent and the Lord
+const CH = 8, W = i => [i/CH + .01, (i+1)/CH - .04];
+// kinds
+const K = {BG:0, NEB:1, NEAR:2, OCEAN:3, COIL:4, BODY:10, LOTUS:12, CHAKRA:13, SHESHA:14, DEVOTEE:15, AURA:16};
+
+/* ---------- renderer ---------- */
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('gl'), antialias:false, powerPreference:'high-performance'});
+const PR = Math.min(devicePixelRatio, MOBILE ? 1.5 : 2);
+renderer.setPixelRatio(PR); renderer.setSize(innerWidth, innerHeight); renderer.setClearColor(0x000003);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 3000);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.35, 0.62));
+composer.addPass(new OutputPass());
+
+/* ---------- one shader for every star ---------- */
+const U = { uTime:{value:0}, uP:{value:0}, uPR:{value:PR}, uMouse:{value:new THREE.Vector2(999,999)}, uExcite:{value:0},
+  uLotus:{value:new THREE.Vector2()} };
+const win = i => `vec2(${W(i)[0].toFixed(4)}, ${W(i)[1].toFixed(4)})`;
+function starMat(gain){
+  return new THREE.ShaderMaterial({
+    uniforms:{...U, uGain:{value:gain}}, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    vertexShader:`
+      attribute vec3 aFrom, aTo, aColor; attribute float aSeed, aSway, aKind, aSize, aDelay;
+      uniform float uTime, uP, uPR, uExcite; uniform vec2 uMouse, uLotus;
+      varying vec3 vC; varying float vA;
+      float arrive(vec2 w){ float span = w.y - w.x, st = w.x + aDelay*span*.55; return smoothstep(st, st + span*.45, uP); }
+      void main(){
+        float t = uTime, k = 1., alpha = 1.;
+        int kind = int(aKind + .5);
+        // chapter I — stars switch on one by one (first few, then many)
+        float thr = (pow(aSeed,.35) - .6)*.11;                   // ~20% of stars already shine at the top
+        float lightUp = smoothstep(thr, thr + .012, uP);
+        vec3 p = position;
+        if (kind <= 2){ alpha = lightUp; }
+        else if (kind == 3){                                   // II ocean
+          alpha = smoothstep(${W(2)[0]} + aDelay*.035, ${W(2)[0]} + .025 + aDelay*.035, uP);
+          p.y += sin(p.x*.05 + t*.35)*2.2 + sin(p.z*.09 + t*.27 + p.x*.02)*1.4;
+        }
+        else if (kind == 4){                                   // III serpent coils, revealed along the body
+          alpha = smoothstep(${W(2)[0]} + .04 + aDelay*.04, ${W(2)[0]} + .046 + aDelay*.04, uP);
+          p.y += sin(aDelay*40. - t*.9)*.9; p.z += cos(aDelay*31. - t*.7)*.7;
+          p.y += sin(p.x*.05 + t*.35)*2.0;
+        }
+        else if (kind == 16){                                  // VII aura: the sky around him fills with stars
+          float st = ${W(6)[0]} + aDelay*${(W(6)[1]-W(6)[0]).toFixed(4)}*.9;
+          alpha = smoothstep(st, st + .02, uP);
+          p += vec3(sin(t*.25+aSeed*23.), cos(t*.21+aSeed*13.), 0.) * .5;
+        }
+        else if (kind == 15){                                  // II the devotee (Indra) appears, hands joined
+          k = arrive(${win(1)});
+          p = mix(aFrom, position, k);
+          p.y += sin(t*.5)*.35*k; p.x += sin(t*.37)*.15*k;
+          alpha = smoothstep(0., .25, k);
+        }
+        else if (kind == 14){                                  // IV Shesha rises; VII he becomes the canopy
+          k = arrive(${win(3)});
+          float span = ${W(6)[1]-W(6)[0]}, st = ${W(6)[0]} + aSeed*span*.4;
+          float k7 = smoothstep(st, st + span*.5, uP);
+          vec3 d = position - aFrom;
+          p = mix(aFrom, position, k) + vec3(-d.y, d.x, 0.) * .16 * sin(k*3.14159);
+          float amp = aSway * (1. + uExcite*1.8) * smoothstep(.85, 1., k) * (1. - k7);
+          p.x += sin(t*.55 + p.y*.11 + p.x*.03) * 1.1 * amp;
+          p.y += sin(t*.42 + p.x*.09) * .6 * amp;
+          p.z += cos(t*.5 + p.y*.08) * 1.4 * amp;
+          p = mix(p, aTo, k7);
+          p += vec3(sin(t*.6+aSeed*31.), cos(t*.5+aSeed*17.), sin(t*.4+aSeed*11.)) * .06;
+          alpha = smoothstep(0., .12, k) * (1. - .8*k7);
+        }
+        else {
+          vec2 w = kind == 11 ? ${win(3)} : kind == 13 ? ${win(4)} : kind == 12 ? ${win(5)} : ${win(6)};
+          k = arrive(w);
+          vec3 d = position - aFrom;
+          p = mix(aFrom, position, k) + vec3(-d.y, d.x, 0.) * .16 * sin(k*3.14159);   // curved stream
+          if (kind == 10) alpha = lightUp; else alpha = smoothstep(0., .12, k);
+          // living motion once home
+          float home = smoothstep(.85, 1., k);
+          p += vec3(sin(t*.6+aSeed*31.), cos(t*.5+aSeed*17.), sin(t*.4+aSeed*11.)) * .06;
+          float amp = aSway * (1. + uExcite*1.8) * home;
+          p.x += sin(t*.55 + p.y*.11 + p.x*.03) * 1.0 * amp;
+          p.y += sin(t*.42 + p.x*.09) * .55 * amp;
+          p.z += cos(t*.5 + p.y*.08) * 1.3 * amp;
+          if (kind == 13){ float a = t*(.9 + 2.2/(length(p.xz)+1.)); p.xz = mat2(cos(a),-sin(a),sin(a),cos(a))*p.xz; }
+          if (kind == 12){ p.xy = uLotus + (p.xy-uLotus)*(1. + .03*sin(t*1.2)*home); }
+        }
+        // cursor gently parts the stars
+        vec4 wp = modelMatrix * vec4(p,1.);
+        vec2 md = wp.xy - uMouse; float f = exp(-dot(md,md)/30.);
+        wp.xy += normalize(md + 1e-4) * f * (.9 + 2.6*uExcite) * (.5 + aSeed); wp.z += f*(1.5 + 3.*aSeed);
+        vec4 mv = viewMatrix * wp;
+        gl_Position = projectionMatrix * mv;
+        float sz = aSize * (kind == 10 ? mix(.75, 1., k) : 1.);
+        gl_PointSize = clamp(sz * uPR * (1.0 + 55./-mv.z), 1., 6.*uPR);
+        // a body star wandering the sky is a dim blue-white star; it gains its true colour on arrival
+        vec3 c = aColor;
+        if (kind == 10) c = mix(vec3(.5,.62,1.)*(.18 + .5*aSeed*aSeed), aColor, k);
+        if (kind == 12) c *= 1. + .45*sin(t*1.2 + aSeed*2.)*smoothstep(.85,1.,k);
+        vC = c;
+        vA = alpha * (.55 + .45*pow(.5+.5*sin(t*(.6+aSeed*2.6) + aSeed*60.), 2.));
+      }`,
+    fragmentShader:`
+      uniform float uGain; varying vec3 vC; varying float vA;
+      void main(){
+        float d = length(gl_PointCoord - .5) * 2.;
+        float a = ((1. - smoothstep(.32, .6, d)) + exp(-d*d*7.) * .35) * vA;   // crisp core, tight halo
+        if (a < .01) discard;
+        gl_FragColor = vec4(vC * a * uGain, 1.);
+      }`
+  });
+}
+function cloud(n, fill, gain, parent=scene){
+  const A = {position:new Float32Array(n*3), aFrom:new Float32Array(n*3), aTo:new Float32Array(n*3), aColor:new Float32Array(n*3),
+    aSeed:new Float32Array(n), aSway:new Float32Array(n), aKind:new Float32Array(n), aSize:new Float32Array(n), aDelay:new Float32Array(n)};
+  let m = 0; const put = o => { if (m >= n) return;
+    A.position.set(o.p, m*3); A.aFrom.set(o.from || o.p, m*3); A.aTo.set(o.to || o.p, m*3); A.aColor.set(o.c, m*3);
+    A.aSeed[m]=o.seed ?? Math.random(); A.aSway[m]=o.sway||0; A.aKind[m]=o.kind; A.aSize[m]=o.size||1; A.aDelay[m]=o.delay||0; m++; };
+  fill(put);
+  const g = new THREE.BufferGeometry();
+  for (const [key,arr] of Object.entries(A)) g.setAttribute(key, new THREE.BufferAttribute(arr.subarray(0, m*(arr.length/n)), arr.length/n));
+  const pts = new THREE.Points(g, starMat(gain)); pts.frustumCulled = false; parent.add(pts); return pts;
+}
+
+/* ---------- the universe ---------- */
+cloud(Math.floor(45000*Q), put => { for (let i=0;i<45000*Q;i++){
+  const r=rand(250,1100), th=rand(0,Math.PI*2), ph=Math.acos(rand(-1,1)), q=Math.random(), b=Math.pow(Math.random(),3)*.9+.08;
+  const c = q<.7?[.55,.7,1]:q<.9?[1,1,1]:[1,.8,.55];
+  put({p:[r*Math.sin(ph)*Math.cos(th), r*Math.cos(ph)*.7, -Math.abs(r*Math.sin(ph)*Math.sin(th))*.9 - 60], c:c.map(v=>v*b), kind:K.BG, size:Math.random()<.02?3.2:rand(.8,1.6)});
+}}, 1);
+cloud(Math.floor(80000*Q), put => {
+  const clumps = Array.from({length:60}, ()=>({x:rand(-190,190), y:rand(-80,100), z:rand(-150,-30), s:rand(6,26), sx:rand(1,2.6), h:Math.random()}));
+  for (let i=0;i<80000*Q;i++){ const c = clumps[(Math.random()*clumps.length)|0];
+    const col = c.h<.65?[.25,.45,1]:c.h<.85?[.5,.38,1]:[.45,.8,1], b=Math.pow(Math.random(),2)*.55+.05;
+    put({p:[c.x+gauss()*c.s*c.sx, c.y+gauss()*c.s*.6, c.z+gauss()*c.s*.5], c:col.map(v=>v*b), kind:K.NEB, size:rand(.7,1.4)}); }
+}, .9);
+cloud(Math.floor(2500*Q), put => { for (let i=0;i<2500*Q;i++){ const b=rand(.15,.6);
+  put({p:[rand(-110,110), rand(-60,60), rand(30,130)], c:[.7*b,.85*b,b], kind:K.NEAR, size:rand(.8,1.8)}); }}, .8);
+
+/* ---------- II. the cosmic ocean ---------- */
+const OCEAN_Y = -46;
+cloud(Math.floor(170000*Q), put => { for (let i=0;i<170000*Q;i++){
+  const x=rand(-170,170), z=-Math.pow(Math.random(),2.2)*170+40, crest=Math.random()<.35;
+  const y=OCEAN_Y + (crest? Math.abs(gauss())*3 : -Math.abs(gauss())*6);
+  const b=(crest?rand(.8,1.8):rand(.25,.8)) * (1 - Math.max(0,-z-60)/230);
+  const col = Math.random()<.85 ? [.35,.55,1] : [.75,.85,1];
+  put({p:[x,y,z], c:col.map(v=>v*b), kind:K.OCEAN, size:crest&&Math.random()<.05?2.2:rand(.7,1.4), delay:Math.min(Math.hypot(x,z+40)/220,1)});
+}}, 1);
+
+/* ---------- III. Shesha — coils through the ocean ---------- */
+const coil = u => new THREE.Vector3(-170 + 340*u, OCEAN_Y + 3 + Math.sin(u*Math.PI*5)*3.5, -50 + Math.sin(u*Math.PI*3.2)*38);
+cloud(Math.floor(60000*Q), put => { for (let i=0;i<60000*Q;i++){
+  const u=Math.random(), c=coil(u), th=rand(0,Math.PI*2), r=5.2*(1-Math.pow(Math.abs(u-.5)*2,6)*.6), rim=Math.random()<.55;
+  const rr = rim ? r*rand(.9,1.05) : r*Math.sqrt(Math.random());
+  const b = rim ? rand(.6,1.3) : rand(.15,.45), gold = Math.random()<.08;
+  put({p:[c.x+gauss()*.4, c.y+Math.cos(th)*rr, c.z+Math.sin(th)*rr], c:(gold?[1,.8,.5]:[.55,.72,1]).map(v=>v*b), kind:K.COIL, size:rand(.8,1.5), delay:u});
+}}, 1);
+
+/* ---------- IV–VII. the figure, drawn by stars ---------- */
+const img = new Image(); img.src = SRC; await img.decode();
+const cv = document.createElement('canvas'); cv.width = IW; cv.height = IH;
+const cx = cv.getContext('2d', {willReadFrequently:true}); cx.drawImage(img, 0, 0, IW, IH);
+const px = cx.getImageData(0, 0, IW, IH).data;
+const dimg = new Image(); dimg.src = DENS; await dimg.decode(); cx.drawImage(dimg, 0, 0, IW, IH);
+const dp = cx.getImageData(0, 0, IW, IH).data;
+
+const CHAKRA = {x:222, y:390, rx:135, ry:26};
+const LOTUS  = {x:665, y:700, r:140};
+U.uLotus.value.set(wx(LOTUS.x), wy(LOTUS.y));
+const hoodW = (x,y)=>{ let w = sm(560,170,y); w *= 1-box(x,y,380,40,600,520,90); w *= 1-box(x,y,830,200,1010,520,70); w *= 1-box(x,y,170,330,300,620,70); return w; };
+
+const L = new Float32Array(IW*IH), WT = new Float32Array(IW*IH); let sum = 0;
+for (let i=0;i<IW*IH;i++) L[i] = dp[i*4]/255;
+for (let y=1;y<IH-1;y++) for (let x=1;x<IW-1;x++){
+  const i=y*IW+x, G=Math.min(Math.hypot(L[i+1]-L[i-1], L[i+IW]-L[i-IW])*5, 1);
+  const cxn=(x-CHAKRA.x)/CHAKRA.rx, cyn=(y-CHAKRA.y)/CHAKRA.ry;
+  if (cxn*cxn+cyn*cyn < 1 && L[i] > .5) continue;
+  let w = 0.004 + Math.pow(L[i],1.7) + 0.3*G*L[i];
+  w *= 1 + 2.4*box(x,y,410,300,580,490,40)*(1-L[i]) + .4*box(x,y,380,60,600,290,30);
+  w *= box(x,y,60,40,IW-60,IH-30,110);
+  WT[i]=w; sum+=w;
+}
+const NF = Math.floor(380000*Q), kf = NF/sum, canopy = [];
+cloud(NF, put => {
+  for (let y=0;y<IH;y++) for (let x=0;x<IW;x++){
+    const i=y*IW+x; let m = WT[i]*kf;
+    while (m > 0){
+      if (m < 1 && Math.random() > m) break; m -= 1;
+      const X=x+Math.random(), Y=y+Math.random(), l=L[i];
+      const dx=(X-520)/330, dy=(Y-520)/360, sw=hoodW(X,Y);
+      const z = (l-.35)*4 + 14*Math.exp(-(dx*dx+dy*dy)) - 5*sw + gauss()*.7;
+      const home = [wx(X), wy(Y), z];
+      let r=lin(px[i*4]), g=lin(px[i*4+1]), b=lin(px[i*4+2]); const mx=Math.max(r,g,b,.002), bri=.14+.95*Math.pow(l,1.5);
+      r=(r/mx*.78+.22)*bri; g=(g/mx*.78+.22)*bri; b=(b/mx*.78+.22)*bri;
+      const q=Math.random(), size = q<.012 ? rand(2.6,3.6) : q<.12 ? rand(1.4,2) : rand(.8,1.25);
+      const ld = Math.hypot(X-LOTUS.x, Y-LOTUS.y);
+      if (ld < LOTUS.r && l > .25){                                     // VI lotus: opens from its own heart
+        const t = ld/LOTUS.r, c0=[wx(LOTUS.x), wy(LOTUS.y), z];
+        put({p:home, from:[c0[0]+(home[0]-c0[0])*.22, c0[1]+(home[1]-c0[1])*.12, z], c:[r*.75,g*.58,b*.6], kind:K.LOTUS, size, delay:t});
+      } else {
+        if (sw > .3 && Math.random() < .5) canopy.push(home);                                                          // VII body: gathered from the whole sky
+        const R=rand(60,420), th=rand(0,Math.PI*2), ph=Math.acos(rand(-1,1));
+        const from=[R*Math.sin(ph)*Math.cos(th)*1.4, R*Math.cos(ph)*.6, -Math.abs(R*Math.sin(ph)*Math.sin(th)) - 20];
+        // crown first, then face, then shoulders and arms
+        const delay = Math.min(.62*(Y/IH) + .3*Math.abs(X-485)/700 + Math.random()*.12, 1);
+        put({p:home, from, c:[r,g,b], kind:K.BODY, sway:sw, size, delay});
+      }
+    }
+  }
+}, .8);
+
+/* ---------- IV. Shesha — the serpent, drawn by stars ---------- */
+{
+  const SW_ = 1200, SH_ = 613, S2 = .128;
+  const sx = x => (x - 760)*S2 + XOFF + 4, sy = y => -(y - 330)*S2 - 6;
+  const load = async src => { const im = new Image(); im.src = src; await im.decode(); cx.clearRect(0,0,IW,IH); cx.drawImage(im,0,0,SW_,SH_); return cx.getImageData(0,0,SW_,SH_).data; };
+  const sc = await load(SNAKE), sd = await load(SNAKED);
+  const Ls = new Float32Array(SW_*SH_), Ws = new Float32Array(SW_*SH_); let ssum = 0;
+  for (let i=0;i<SW_*SH_;i++) Ls[i] = sd[i*4]/255;
+  for (let y=1;y<SH_-1;y++) for (let x=1;x<SW_-1;x++){
+    const i=y*SW_+x, G=Math.min(Math.hypot(Ls[i+1]-Ls[i-1], Ls[i+SW_]-Ls[i-SW_])*5,1);
+    const w = (0.002 + Math.pow(Ls[i],1.8) + .3*G*Ls[i]) * box(x,y,260,20,SW_-10,SH_,60);
+    Ws[i]=w; ssum+=w;
+  }
+  const NS = Math.floor(230000*Q), ks = NS/ssum;
+  cloud(NS, put => {
+    for (let y=0;y<SH_;y++) for (let x=0;x<SW_;x++){
+      const i=y*SW_+x; let m = Ws[i]*ks;
+      while (m > 0){
+        if (m < 1 && Math.random() > m) break; m -= 1;
+        const X=x+Math.random(), Y=y+Math.random(), l=Ls[i];
+        const home=[sx(X), sy(Y), (l-.35)*4 - 4 + gauss()*.8 + 6*Math.exp(-Math.pow((X-800)/260,2))];
+        let r=lin(sc[i*4]), g=lin(sc[i*4+1]), b=lin(sc[i*4+2]); const mx=Math.max(r,g,b,.002), bri=.14+.95*Math.pow(l,1.5);
+        r=(r/mx*.75+.25)*bri; g=(g/mx*.75+.25)*bri; b=(b/mx*.75+.25)*bri;
+        const q=Math.random(), size = q<.012 ? rand(2.4,3.4) : q<.12 ? rand(1.4,2) : rand(.8,1.25);
+        const to = canopy.length ? canopy[(Math.random()*canopy.length)|0] : home;
+        const R=rand(50,320), th=rand(0,Math.PI*2), ph=Math.acos(rand(-1,1));   // conjured from every direction
+        const from=[home[0]*.3 + R*Math.sin(ph)*Math.cos(th)*1.3, R*Math.cos(ph)*.7, -Math.abs(R*Math.sin(ph)*Math.sin(th))*.8 + 20];
+        put({p:home, from, to, c:[r,g,b], kind:K.SHESHA, sway:sm(430,140,Y), size, delay:Math.random()*.7 + .3*(1-Y/SH_)});
+      }
+    }
+  }, 1.0);
+}
+
+/* ---------- VIII. the devotee, floating before him ---------- */
+{
+  const DW = 390, DH = 735, S3 = .04;
+  const dpos = DPOS;
+  const load = async src => { const im = new Image(); im.src = src; await im.decode(); cx.clearRect(0,0,IW,IH); cx.drawImage(im,0,0,DW,DH); return cx.getImageData(0,0,DW,DH).data; };
+  const dc = await load(DEV), dd = await load(DEVD);
+  let dsum = 0; const Wd = new Float32Array(DW*DH);
+  for (let i=0;i<DW*DH;i++){ const l = dd[i*4]/255; Wd[i] = l > .03 ? .05 + Math.pow(l,1.4) : 0; dsum += Wd[i]; }
+  const ND = Math.floor(30000*Q), kd = ND/dsum;
+  cloud(ND, put => {
+    for (let y=0;y<DH;y++) for (let x=0;x<DW;x++){
+      const i=y*DW+x; let m = Wd[i]*kd;
+      while (m > 0){
+        if (m < 1 && Math.random() > m) break; m -= 1;
+        const X=x+Math.random(), Y=y+Math.random(), l=dd[i*4]/255;
+        const home=[dpos[0] + (X-DW/2)*S3, dpos[1] - (Y-DH/2)*S3, 10 + gauss()*.35];
+        let r=lin(dc[i*4]), g=lin(dc[i*4+1]), b=lin(dc[i*4+2]); const mx=Math.max(r,g,b,.002), bri=.18+.95*Math.pow(l,1.3);
+        r=(r/mx*.72+.28)*bri; g=(g/mx*.72+.28)*bri; b=(b/mx*.72+.28)*bri;
+        put({p:home, from:[home[0]+gauss()*.8, home[1]-16+gauss()*2, home[2]-4], c:[r,g,b], kind:K.DEVOTEE,
+             size: Math.random()<.05 ? rand(1.6,2.2) : rand(.7,1.1), delay: Math.random()*.5});
+      }
+    }
+  }, .6);
+}
+
+/* ---------- VII. aura — stars gather in the sky around him, tying the frame together ---------- */
+cloud(Math.floor(70000*Q), put => {
+  const cx0 = XOFF + 6, cy0 = 2;
+  for (let i=0;i<70000*Q;i++){
+    const halo = Math.random() < .7;
+    let x, y;
+    if (halo){ const a = rand(0,Math.PI*2), r = 40 + Math.abs(gauss())*34; x = cx0 + Math.cos(a)*r*1.35; y = cy0 + Math.sin(a)*r*.85; }
+    else { x = rand(-130, 140); y = rand(-50, 75); }                      // thin wash across the whole frame
+    const z = rand(-35, 8), d = Math.hypot((x-cx0)/1.35, y-cy0);
+    const q = Math.random(), b = (halo ? .25 + .75*Math.exp(-Math.pow((d-40)/30,2)) : .3) * rand(.25,1);
+    const col = q < .7 ? [.6,.72,1] : q < .92 ? [.95,.95,1] : [1,.85,.7];
+    put({p:[x,y,z], c:col.map(v=>v*b), kind:K.AURA, size: Math.random()<.025 ? rand(2,3) : rand(.7,1.3),
+         delay: Math.min(Math.max((d-30)/120, 0) + Math.random()*.25, 1)});             // fills outward from him
+  }
+}, .9);
+
+/* ---------- V. Sudarshana chakra ---------- */
+const chakraObj = new THREE.Group();
+chakraObj.position.set(wx(CHAKRA.x), wy(CHAKRA.y)+.6, 9); chakraObj.rotation.x = .2; scene.add(chakraObj);
+cloud(Math.floor(16000*Q), put => { const R = CHAKRA.rx*S; for (let i=0;i<16000*Q;i++){
+  const ring = Math.floor(Math.pow(Math.random(),.8)*9), r = R*(.08 + ring*.11 + gauss()*.012), th = rand(0,Math.PI*2), hot = 1-ring/10, b = rand(.4,1)*(.5+hot*.7);
+  put({p:[Math.cos(th)*r, gauss()*.05, Math.sin(th)*r], from:[0,0,0], c:[b,(.78+hot*.2)*b,(.45+hot*.4)*b], kind:K.CHAKRA, size:Math.random()<.03?2.6:rand(.8,1.4), delay:ring/9});
+}}, .55, chakraObj);
+
+/* ---------- camera — one shot per chapter ---------- */
+const V = (x,y,z)=>new THREE.Vector3(x,y,z);
+const o = MOBILE ? 0 : 1;                        // desktop: subject sits right of the text column
+const finalZ = () => Math.min(Math.max((MOBILE?62:52)/0.364, (MOBILE?40:110)/(0.364*camera.aspect)), 230);
+const chW = [wx(CHAKRA.x), wy(CHAKRA.y)], loW = [wx(LOTUS.x), wy(LOTUS.y)];
+const SHOTS = () => {
+  const fz = finalZ(), fx = MOBILE ? wx(485) : 0, fy = MOBILE ? wy(380) : 0;
+  return [
+    {pos:V(0, 4, 170),                  tgt:V(0, 0, 0)},                          // I    darkness
+    {pos:V(DPOS[0]-11*o, DPOS[1]+3, 42), tgt:V(DPOS[0]-11*o, DPOS[1], 10)},     // II   the devotee
+    {pos:V(-74*o, -20, 108),            tgt:V(-88*o, -44, -40)},                  // III  ocean + coils (devotee sits right of the text)
+    {pos:V(XOFF*.55+(MOBILE?wx(600):0), 4, MOBILE?230:150), tgt:V(XOFF*.55-14*o+(MOBILE?wx(600):0), 8, 0)},              // IV   hoods
+    {pos:V(chW[0]-16*o, chW[1]+26, 58), tgt:V(chW[0]-16*o, chW[1], 9)},           // V    chakra
+    {pos:V(loW[0]-24*o, loW[1]+8, 82), tgt:V(loW[0]-24*o, loW[1], 5)},           // VI   lotus
+    {pos:V(fx, fy-2, fz),               tgt:V(fx, fy-2, 0)},                        // VII  Narayana
+    {pos:V(fx+12*o, fy+4, fz*1.14), tgt:V(fx, fy-2, 0)}, // end: slow pull-back so the last stretch moves like the others
+  ];
+};
+let shots = SHOTS();
+const camPos = shots[0].pos.clone(), camTgt = shots[0].tgt.clone();
+const ease = t => t*t*t*(t*(t*6-15)+10);
+
+/* ---------- text ---------- */
+const panels = [...document.querySelectorAll('.panel')];
+const parts = panels.map(p => [...p.children]);
+const SHADOW = 'drop-shadow(0 0 16px rgba(0,0,8,.95)) drop-shadow(0 0 3px rgba(0,0,8,.8))';
+const rail = document.querySelector('.rail'), fill = rail.querySelector('.fill'), cue = document.querySelector('.cue');
+const dots = panels.map((_,i) => { const d = document.createElement('div'); d.className='dot'; d.style.top=`calc(${i/(CH-1)*100}% - 3.5px)`; rail.appendChild(d); return d; });
+
+/* ---------- input ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0,0,1), -6), hit = new THREE.Vector3(), tmp = new THREE.Vector2();
+let mx=0, my=0, has=false, vel=0, lx=0, ly=0;
+addEventListener('pointermove', e => { mx=e.clientX/innerWidth*2-1; my=-(e.clientY/innerHeight*2-1); has=true;
+  vel += Math.hypot(e.clientX-lx, e.clientY-ly)*.004; lx=e.clientX; ly=e.clientY; });
+document.addEventListener('pointerleave', () => has=false);
+
+/* ---------- loop ---------- */
+const clock = new THREE.Clock(); let P = 0, lastAct = -1, endT = 0, looping = false;
+const fade = document.getElementById('fade');
+// after the last chapter has been held for a moment, fade out and return to the opening
+function loopToStart(){
+  looping = true; fade.classList.add('on');
+  setTimeout(() => {
+    window.scrollTo({top:0, behavior:'instant'}); P = 0; U.uP.value = 0;
+    camPos.copy(shots[0].pos); camTgt.copy(shots[0].tgt);
+    setTimeout(() => { fade.classList.remove('on'); looping = false; endT = 0; }, 200);
+  }, 1500);
+}
+function frame(){
+  const dt = Math.min(clock.getDelta(), .05), kk = 1 - Math.pow(.02, dt);
+  U.uTime.value += dt;
+  const target = Math.min(scrollY / Math.max(document.documentElement.scrollHeight - innerHeight, 1), 1);
+  P += (target - P) * (1 - Math.pow(.004, dt));              // smoothed story progress
+  if (target > .995 && P > .985){ endT ||= performance.now(); } else endT = 0;
+  if (endT && performance.now() - endT > 2500 && !looping) loopToStart();
+  U.uP.value = P;
+
+  // camera: hold each chapter's shot, glide between them
+  const f = Math.min(P*CH, CH-1), i = Math.min(Math.floor(f), CH-2), e = ease(sm(.75, 1, f - i));
+  const wantP = shots[i].pos.clone().lerp(shots[i+1].pos, e), wantT = shots[i].tgt.clone().lerp(shots[i+1].tgt, e);
+  wantP.y += Math.sin(e*Math.PI) * Math.min(shots[i].pos.distanceTo(shots[i+1].pos)*.12, 20);
+  camPos.lerp(wantP, kk); camTgt.lerp(wantT, kk);
+  camera.position.set(camPos.x + mx*2.2, camPos.y + my*1.4, camPos.z); camera.lookAt(camTgt);
+
+  // text: chapter i readable for most of its slice
+  panels.forEach((el, j) => {
+    const a = j/CH, b = (j+1)/CH;
+    let v = sm(a + .004, a + .03, P) * (j === CH-1 ? 1 : 1 - sm(b - .035, b - .012, P));
+    if (j === CH-1) v = sm(a + .015, a + .045, P);
+    if (Math.abs((el._v ?? -1) - v) < .003) return; el._v = v;
+    el.style.visibility = v < .01 ? 'hidden' : 'visible';
+    // each line drops in from above, blurred → sharp, one after another
+    parts[j].forEach((el, n) => {
+      const u = Math.min(Math.max(v*1.6 - n*.2, 0), 1), q = 1 - u*u*(3-2*u);
+      el.style.opacity = 1 - q;
+      el.style.transform = `translateY(${-q*34}px)`;
+      el.style.filter = `blur(${(q*12).toFixed(2)}px) ${SHADOW}`;
+    });
+  });
+  cue.style.opacity = 1 - sm(.005, .03, P);
+  fill.style.height = (P*100) + '%';
+  const act = Math.min(Math.floor(P*CH + .02), CH-1);
+  if (act !== lastAct){ lastAct = act; dots.forEach((d,j) => d.classList.toggle('on', j === act)); }
+
+  // mouse
+  vel *= Math.pow(.08, dt); U.uExcite.value += (Math.min(vel,1) - U.uExcite.value)*kk;
+  if (has){ ndc.set(mx,my); ray.setFromCamera(ndc,camera); if (ray.ray.intersectPlane(plane,hit)) U.uMouse.value.lerp(tmp.set(hit.x,hit.y), .25); }
+  else U.uMouse.value.set(999,999);
+
+  composer.render(); requestAnimationFrame(frame);
+}
+frame();
+addEventListener('resize', () => { camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight); shots = SHOTS(); });
+</script>
+</body>
+</html>
